@@ -1,0 +1,48 @@
+---
+title: "Time series tutorial"
+author: "A.ZAHER"
+date: "30/03/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(lattice)
+library(ggplot2)
+# latticeExtra must be loaded after ggplot2 to prevent masking of `layer`
+library(latticeExtra)
+library(RColorBrewer)
+# lattice and latticeExtra configuration
+myTheme <- custom.theme.2(
+  pch=19, cex=0.7, region=rev(brewer.pal(9, 'YlOrRd')),
+  symbol=brewer.pal(n=8, name="Dark2"))
+myTheme$strip.background$col = myTheme$strip.shingle$col =
+  myTheme$strip.border$col = 'transparent'
+
+myArgs <- list(
+  as.table=TRUE, between=list(x=0.5, y=0.2),
+  xscale.components = function(...)
+    modifyList(xscale.components.default(...), list(top=FALSE)),
+  yscale.components = function(...)
+    modifyList(yscale.components.default(...), list(right=FALSE)))
+
+lattice.options(default.theme=myTheme, default.args=modifyList(
+  lattice.options()$default.args, myArgs))
+
+library(zoo) 
+
+library(repmis)
+
+source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/aranjuez.RData?raw=True")
+source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/navarra.RData?raw=True")
+source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/CO2.RData?raw=True")
+
+
+
+```
+
+```{r}
+## The layout argument arranges panels in rows
+xyplot(aranjuez, layout = c(1, ncol(aranjuez)))
+```
+
