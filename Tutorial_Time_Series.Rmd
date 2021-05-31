@@ -1,17 +1,28 @@
 ---
-title: "Time series tutorial"
+title: "Time series tutorial - R in Grenoble session"
 author: "A.ZAHER"
-date: "30/03/2021"
-output: html_document
+date: "`r Sys.Date()`"
+output: 
+  html_document: default
 ---
-
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(widgetframe_widgetsdir = 'widgets')
+
+```
+
+
+The most relevant packages are: lattice, latticeExtra, and ggplot2 for static graphics; zoo and xts for reading and arranging data as time series; RColorBrewer for defining color palettes; and packages dygraphs, highcharter, and plotly, based on the htmlwidgets framework, to generate animations or interactive graphics.
+
+```{r , results=FALSE, message=FALSE, error=FALSE, warning=FALSE}
+
 
 library(lattice)
 library(ggplot2)
 # latticeExtra must be loaded after ggplot2 to prevent masking of `layer`
 library(latticeExtra)
 library(RColorBrewer)
+
 # lattice and latticeExtra configuration
 myTheme <- custom.theme.2(
   pch=19, cex=0.7, region=rev(brewer.pal(9, 'YlOrRd')),
@@ -31,18 +42,141 @@ lattice.options(default.theme=myTheme, default.args=modifyList(
 
 library(zoo) 
 
-library(repmis)
-
-source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/aranjuez.RData?raw=True")
-source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/navarra.RData?raw=True")
-source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/CO2.RData?raw=True")
-
-
 
 ```
+
+And this is the data we will use:
+
+* aranjuez.RData
+* navarra.RData
+* CO2.RData
+
+```{r}
+
+## loading from Github 
+
+# library(repmis)
+# 
+# source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/aranjuez.RData?raw=True")
+# source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/navarra.RData?raw=True")
+# source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/CO2.RData?raw=True")
+
+## loading from local repository 
+
+load('aranjuez.RData')
+load('navarra.RData')
+load('CO2.RData')
+
+```
+
+
+# Visualization of a Time Series
+
+The most frequent visualization method of a time series uses the horizontal axis to depict the time index. This section illustrates two variants of this approach to display multivariate time series: multiple time series with different scales, and variables with the same scale.
+
+## Time graph of variables with different scales
+
+For the first example we will use the eight years of daily data from a meteorological station located at Aranjuez (Madrid). This multivariate time series can be displayed with the `xyplot` method of lattice for `zoo` objects with a panel for each variable.
+
 
 ```{r}
 ## The layout argument arranges panels in rows
 xyplot(aranjuez, layout = c(1, ncol(aranjuez)))
+
 ```
+
+The package `ggplot2` provides the generic method `autoplot` to automate the display of certain classes with a simple command. 
+
+```{r}
+## facet_free allows each panel to have its own range
+ggplot2::autoplot(aranjuez) + facet_free() 
+```
+
+# Time series of variables with the same scale
+
+As an example of time series of variables with the same scale, we will use measurements of solar radiation from different meteorological stations.
+
+The first attempt to display this multivariate time series makes use of the xyplot.zoo method. The objective of this graphic is to display the behavior of the collection as a whole: the series are superposed in the same panel (superpose=TRUE) without legend (auto.key=FALSE), using thin lines and partial transparency. Transparefncy softens overplotting problems and reveals density clusters because regions with more overlapping lines are darker. Next code displays the variations around the time average (avRad).
+
+
+```{r}
+avRad <- zoo(rowMeans(navarra, na.rm = 1), index(navarra))
+pNavarra <- xyplot(navarra - avRad,
+        superpose = TRUE, auto.key = FALSE,
+        lwd = 0.5, alpha = 0.3, col = 'midnightblue') 
+pNavarra 
+
+```
+
+
+```{r}
+horizonplot(navarra - avRad,
+            layout = c(1, ncol(navarra)),
+            origin = 0, ## Deviations in each panel are calculated
+                        ## from this value
+            colorkey = TRUE,
+            col.regions = brewer.pal(6, "RdBu")) 
+```
+
+# Interactive graphics
+
+
+```{r}
+library(widgetframe)
+library(dygraphs)
+
+dyTemp <- dygraph(aranjuez[, c("TempMin", "TempAvg", "TempMax")],
+       main = "Temperature in Aranjuez",
+       ylab = "ºC")
+
+widgetframe::frameWidget(dyTemp)
+
+```
+
+```{r}
+dygraph(aranjuez[, c("TempMin", "TempAvg", "TempMax")],
+ main = "Temperature in Aranjuez",
+ ylab = "ºC") %>%
+   dySeries(c("TempMin", "TempAvg", "TempMax"),
+      label = "Temperature") %>%
+  widgetframe::frameWidget()
+```
+
+```{r}
+library(highcharter)
+library(xts)
+
+aranjuezXTS <- as.xts(aranjuez)
+
+highchart() %>%
+   hc_add_series(name = 'TempMax',
+           aranjuezXTS[, "TempMax"]) %>%
+   hc_add_series(name = 'TempMin',
+           aranjuezXTS[, "TempMin"]) %>%
+   hc_add_series(name = 'TempAvg',
+           aranjuezXTS[, "TempAvg"]) %>%
+  widgetframe::frameWidget()
+```
+
+```{r}
+aranjuezDF <- fortify(aranjuez[,
+            c("TempMax",
+              "TempAvg",
+              "TempMin")],
+           melt = TRUE)
+
+summary(aranjuezDF) 
+```
+
+```{r}
+library(plotly)
+
+plot_ly(aranjuezDF) %>%
+   add_lines(x = ~ Index,
+       y = ~ Value,
+       color = ~ Series) %>%
+  widgetframe::frameWidget()
+```
+
+
 
