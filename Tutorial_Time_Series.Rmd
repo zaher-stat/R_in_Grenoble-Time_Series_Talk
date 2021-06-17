@@ -1,21 +1,31 @@
 ---
-title: "Time series tutorial - R in Grenoble session"
+title: "Time series tutorial"
+subtitle: "R in Grenoble session"
 author: "A.ZAHER"
-date: "`r Sys.Date()`"
+date: "2021-06-24"
 output: 
-  html_document: default
+  html_document:
+    toc: true
+    number_sections: true 
+    toc_float: true
+    theme: cerulean
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(widgetframe_widgetsdir = 'widgets')
-
 ```
 
+In this tutorial, we present the process of time series analysis, starting with the visualization of time series using different examples and techniques. Then, we discuss the processing of time series data and the notion of stationarity of a time series, to finally end with the modeling and forecasting part using ARIMA models.
 
-The most relevant packages are: lattice, latticeExtra, and ggplot2 for static graphics; zoo and xts for reading and arranging data as time series; RColorBrewer for defining color palettes; and packages dygraphs, highcharter, and plotly, based on the htmlwidgets framework, to generate animations or interactive graphics.
+
+# Visualization of Time Series
+
+`zoo` _(Z's Ordered Observations)_ and `xts` _(eXtensible Time Series)_ objects are the most used classes for representing time series in `R`. They allow to repesent time series data as a matrix of observations combined with an index of corresponding dates and times. 
+
+
+For static graphics, the `lattice`, `latticeExtra`, and `ggplot2` will be used. We start by loading these packages and configuring some of them.
+
 
 ```{r , results=FALSE, message=FALSE, error=FALSE, warning=FALSE}
-
 
 library(lattice)
 library(ggplot2)
@@ -42,14 +52,13 @@ lattice.options(default.theme=myTheme, default.args=modifyList(
 
 library(zoo) 
 
-
 ```
 
-And this is the data we will use:
+Two datasets available at the Data folder of the repository will be used. They are the following :
 
-* aranjuez.RData
-* navarra.RData
-* CO2.RData
+* **aranjuez.RData**: representing eight years of daily data from a meteorological station located at Aranjuez (Madrid);
+
+* **navarra.RData**: representing measurements of solar radiation from different meteorological stations.
 
 ```{r}
 
@@ -59,24 +68,19 @@ And this is the data we will use:
 # 
 # source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/aranjuez.RData?raw=True")
 # source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/navarra.RData?raw=True")
-# source_data("https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk/blob/ZAHER_Ahmed/CO2.RData?raw=True")
 
 ## loading from local repository 
 
-load('aranjuez.RData')
-load('navarra.RData')
-load('CO2.RData')
+load('Data/aranjuez.RData')
+load('Data/navarra.RData')
 
 ```
 
 
-# Visualization of a Time Series
-
-The most frequent visualization method of a time series uses the horizontal axis to depict the time index. This section illustrates two variants of this approach to display multivariate time series: multiple time series with different scales, and variables with the same scale.
 
 ## Time graph of variables with different scales
 
-For the first example we will use the eight years of daily data from a meteorological station located at Aranjuez (Madrid). This multivariate time series can be displayed with the `xyplot` method of lattice for `zoo` objects with a panel for each variable.
+For the first example we will use the eight years of daily data from a meteorological station located at Aranjuez (Madrid). This multivariate time series can be displayed with the `xyplot` method of `lattice` for `zoo` objects with a panel for each variable.
 
 
 ```{r}
@@ -85,6 +89,8 @@ xyplot(aranjuez, layout = c(1, ncol(aranjuez)))
 
 ```
 
+
+
 The package `ggplot2` provides the generic method `autoplot` to automate the display of certain classes with a simple command. 
 
 ```{r}
@@ -92,11 +98,11 @@ The package `ggplot2` provides the generic method `autoplot` to automate the dis
 ggplot2::autoplot(aranjuez) + facet_free() 
 ```
 
-# Time series of variables with the same scale
+## Time series of variables with the same scale
 
-As an example of time series of variables with the same scale, we will use measurements of solar radiation from different meteorological stations.
+As an example of time series of variables with the same scale, we will use measurements of solar radiation from different meteorological stations (navarra Data).
 
-The first attempt to display this multivariate time series makes use of the xyplot.zoo method. The objective of this graphic is to display the behavior of the collection as a whole: the series are superposed in the same panel (superpose=TRUE) without legend (auto.key=FALSE), using thin lines and partial transparency. Transparefncy softens overplotting problems and reveals density clusters because regions with more overlapping lines are darker. Next code displays the variations around the time average (avRad).
+The first attempt to display this multivariate time series makes use of the `xyplot.zoo` method. The objective of this graphic is to display the behavior of the collection as a whole: the series are superposed in the same panel (`superpose=TRUE`) without legend (`auto.key=FALSE`), using thin lines and partial transparency. Transparefncy softens overplotting problems and reveals density clusters because regions with more overlapping lines are darker. Next code displays the variations around the time average (`avRad`).
 
 
 ```{r}
@@ -108,7 +114,10 @@ pNavarra
 
 ```
 
+This result can be improved with the horizon graph. The horizon graph is useful in examining how a large number of series changes over time, and does so in a way that allows both comparisons between the individual time series and independent analysis of each series. Moreover, extraordinary behaviors and predominant patterns are easily distinguished.
 
+Next code displays the variations of solar radiation around the time average with a horizon graph using a row for each time series. In the code we choose `origin=0` and leave the argument `horizonscale` undefined (default). With this combination each panel has different scales and the colors in each panel represent deviations from the origin. This is depicted in the color key with the $\Delta_i$ symbol, where the subscript i denotes the existence of multiple panels with different scales.
+ 
 ```{r}
 horizonplot(navarra - avRad,
             layout = c(1, ncol(navarra)),
@@ -118,31 +127,78 @@ horizonplot(navarra - avRad,
             col.regions = brewer.pal(6, "RdBu")) 
 ```
 
-# Interactive graphics
-
+The horizon graph is also useful in revealing the differences between a univariate time series and another reference. For example, we might be interested in the departure of the observed temperature from the long-term average, or in other words, the temperature change over time. Let’s illustrate this approach with the time series of daily average temperatures measured at the meteorological station of Aranjuez. The reference is the long-term daily average calculated with ave.
 
 ```{r}
+Ta <- aranjuez$TempAvg
+timeIndex <- index(aranjuez)
+longTa <- ave(Ta, format(timeIndex, '%j'))
+diffTa <- (Ta - longTa) 
+```
+
+The `ggplot` method requires a `data.frame` with the day, year, and month arranged in different columns.
+
+```{r}
+year <- function(x)as.numeric(format(x, '%Y'))
+day <- function(x)as.numeric(format(x, '%d'))
+month <- function(x)as.numeric(format(x, '%m'))
+
+df <- data.frame(Vals = diffTa,
+                 Day = day(timeIndex),
+                 Year = year(timeIndex),
+                 Month = month(timeIndex))
+```
+
+The values (`Vals` column of this `data.frame`) are displayed as a level plot thanks to the `geom_raster` function.
+
+```{r}
+library(scales) 
+## The packages scales is needed for the pretty_breaks function.
+
+ggplot(data = df,
+       aes(fill = Vals,
+           x = Day,
+           y = Year)) +
+    facet_wrap(~ Month, ncol = 1, strip.position = 'left') +
+    scale_y_continuous(breaks = pretty_breaks()) + 
+    scale_fill_distiller(palette = 'RdBu', direction = 1) + 
+    geom_raster() +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank()) 
+```
+
+
+# Interactive graphics
+
+This section describes the interactive alternatives of the static figures included in the previous sections with several packages: `dygraphs`, `highcharter`, and `plotly`. These packages are `R` interfaces to JavaScript libraries based on the `htmlwidgets` package.
+
+**Dygraphs**
+
+The `dygraphs` package is an interface to the `dygraphs` JavaScript library, and provides facilities for charting time-series. It works automatically with `xts` time series objects, or with objects than can be coerced to this class. The result is an interactive graph, where values are displayed according to the mouse position over the time series. Regions can be selected to zoom into a time period.
+
+```{r , message=FALSE, error=FALSE, warning=FALSE}
 library(widgetframe)
+library(htmlwidgets)
 library(dygraphs)
 
+# Original graph
 dyTemp <- dygraph(aranjuez[, c("TempMin", "TempAvg", "TempMax")],
        main = "Temperature in Aranjuez",
        ylab = "ºC")
 
-widgetframe::frameWidget(dyTemp)
+# You can customize dygraphs by piping additional commands onto the original graphic. The function dyOptions provides several choices for the graphic, and the function dyHighlight configures options for data series mouse-over highlighting. For example, with the next code the semi-transparency value of the non-selected lines is reduced and the width of the selected line is increased.
+
+dyTemp %>%
+  dyHighlight(highlightSeriesBackgroundAlpha = 0.2,
+    highlightSeriesOpts = list(strokeWidth = 2))
 
 ```
 
-```{r}
-dygraph(aranjuez[, c("TempMin", "TempAvg", "TempMax")],
- main = "Temperature in Aranjuez",
- ylab = "ºC") %>%
-   dySeries(c("TempMin", "TempAvg", "TempMax"),
-      label = "Temperature") %>%
-  widgetframe::frameWidget()
-```
+**Highcharter**
 
-```{r}
+The `highcharter` package is an interface to the `highcharts` JavaScript library, with a wide spectrum of graphics solutions. Displaying time series with this package can be achieved with the combination of the generic `highchart` function and several calls to the `hc_add_series_xts` function through the pipe `%>%` operator. Once again, the result is an interactive graph with selection and zoom capabilities.
+
+```{r , message=FALSE, error=FALSE, warning=FALSE}
 library(highcharter)
 library(xts)
 
@@ -154,11 +210,15 @@ highchart() %>%
    hc_add_series(name = 'TempMin',
            aranjuezXTS[, "TempMin"]) %>%
    hc_add_series(name = 'TempAvg',
-           aranjuezXTS[, "TempAvg"]) %>%
-  widgetframe::frameWidget()
+           aranjuezXTS[, "TempAvg"]) 
 ```
 
-```{r}
+**plotly**
+
+The `plotly` package is an interface to the `plotly` JavaScript library, also with a wide spectrum of graphics solutions. This package does not provide any function specifically focused on time series. Thus, the time series object has to be transformed into a `data.frame` including a column for the time index. If the `data.frame` is in wide format (one column per variable), each variable will be represented with a call to the `add_lines` function. However, if the `data.frame` is in long format (a column for values, and a column for variable names) only one call to `add_lines` is required. The next code follows this approach using the combination of fortify, to convert the `zoo` object into a `data.frame`, and `melt`, to transform from wide to long format.
+
+
+```{r , message=FALSE, error=FALSE, warning=FALSE}
 aranjuezDF <- fortify(aranjuez[,
             c("TempMax",
               "TempAvg",
@@ -168,15 +228,224 @@ aranjuezDF <- fortify(aranjuez[,
 summary(aranjuezDF) 
 ```
 
-```{r}
+Next code produces an interactive graphic with the generic function `plot_ly` connected with `add_lines` through the pipe operator `%>%`.
+
+```{r , message=FALSE, error=FALSE, warning=FALSE}
 library(plotly)
 
 plot_ly(aranjuezDF) %>%
    add_lines(x = ~ Index,
        y = ~ Value,
-       color = ~ Series) %>%
-  widgetframe::frameWidget()
+       color = ~ Series)
+
+```
+
+# Pre-processing Data for Time Series Analysis
+
+For the sake of simplicity, we prefer to conduct the study here on a simple data set. We will therefore use data from _The Time Series Data Library (TSDL)_ which was created by __Rob Hyndman__, professor of statistics at _Monash University, Australia_.
+
+__648 time series__ are available in this Data Library with different frequency levels:
+
+```{r}
+# install.packages("devtools")
+# devtools::install_github("FinYang/tsdl")
+library(tsdl)
+tsdl
+
+```
+
+We select demographic data and then we choose the data of the age of death of successive kings of England, which we will study further :
+
+```{r}
+# Select demographic datas
+Demographic_datas <- subset(tsdl,"Demography")
+Demographic_datas
+
+# Choose data of the age of death of successive kings of England
+kings_TS <- Demographic_datas[[8]]
+
+kings_TS
+
+```
+
+## Plot
+
+Data is already defined as `ts` object, we can then plot it using `plot.ts()` function:
+
+```{r}
+
+plot.ts(kings_TS, ylab="Age of death", xlab="Year")
+
 ```
 
 
+
+## Chek for stationarity
+
+Before starting the modelisation step using __ARIMA models__, we should first check for stationarity in our time series because ARIMA models are defined for stationary time series. Therefore, if you start off with a non-stationary time series, you will first need to ‘difference’ the time series until you obtain a stationary time series. If you have to difference the time series d times to obtain a stationary series, then you have an $ARIMA(p,d,q)$ model, where d is the order of differencing used.
+
+You can difference a time series using the `diff()` function in `R` :
+
+```{r}
+kings_TS_diff1 <- diff(kings_TS, differences = 1)
+
+plot(kings_TS_diff1)
+
+```
+
+
+The optimal number of diffs is given automaticlly using `ndiffs()` function from `forecast` package :
+
+
+```{r}
+library(forecast)
+ndiffs(x = kings_TS)
+```
+
+**Augmented Dickey-Fuller test**
+
+Statistically, we can apply the Augmented Dickey Fuller test ( __ADF test__ ) to test for stationarity. The null hypothesis tests the existence of a unit root in the time series and therefore the series is non-stationary. Otherwise, the rejection of the null hypothesis indicates that the series is indeed stationary.
+
+```{r, warning=FALSE}
+# Stationarity check
+library(tseries)
+## Augmented Dickey-Fuller test : p-value < 0.05 indicates that TS is stationary
+adf.test(kings_TS)
+
+```
+
+
+# Modelisation of a Time series
+
+## Selecting a Candidate ARIMA Model
+
+If your time series is stationary, or if you have transformed it to a stationary time series by differencing d times, the next step is to select the appropriate ARIMA model, which means finding the values of most appropriate values of p and q for an ARIMA(p,d,q) model. To do this, you usually need to examine the correlogram and partial correlogram of the stationary time series.
+
+To plot a correlogram and partial correlogram, we can use the __Acf()__ and __Pacf()__ functions in __R__, respectively. To get the actual values of the autocorrelations and partial autocorrelations, we set `plot=FALSE` in the two functions.
+
+```{r}
+Acf(kings_TS_diff1, lag.max=20)             # plot a correlogram
+Acf(kings_TS_diff1, lag.max=20, plot=FALSE) # get the autocorrelation values
+
+```
+
+
+The autocorrelation at lag 1 is significant (exceeds significance limits) and equal to -0.360. All other autocorrelations between lags 1-20 are not significant.
+
+```{r}
+pacf(kings_TS_diff1, lag.max=20)             # plot a partial correlogram
+Pacf(kings_TS_diff1, lag.max=20, plot=FALSE) # get the partial autocorrelation  values
+
+```
+
+The partial correlogram shows significant negative partial autocorrelations at lags 1 (-0.360), 2 (-0.335) and 3 (-0.321). The partial autocorrelations tail off to zero after lag 3.
+
+**Strategy for selecting the best model:**
+
+In general, we consider that the lag after which the partial correllogram tails off to zero informs about the maximum order that can be reached by the autoregressive part of the ARIMA model, and similarly the correllogram gives the maximum order that can be reached by the moving average part. Therefore, the following specifications can be tested:
+
+- an $ARMA(3,0)$ model, that is, an autoregressive model of order p=3, since the partial autocorrelogram is zero after lag 3, and the autocorrelogram tails off to zero (although perhaps too abruptly for this model to be appropriate)
+
+- an $ARMA(0,1)$ model, that is, a moving average model of order q=1, since the autocorrelogram is zero after lag 1 and the partial autocorrelogram tails off to zero
+
+- an $ARMA(p,q)$ model, that is, a mixed model with p and q greater than 0, since the autocorrelogram and partial correlogram tail off to zero (although the correlogram probably tails off to zero too abruptly for this model to be appropriate)
+
+We use the principle of parsimony to decide which model is best: that is, we assume that the model with the fewest parameters is best. The $ARMA(3,0)$ model has 3 parameters, the $ARMA(0,1)$ model has 1 parameter, and the $ARMA(p,q)$ model has at least 2 parameters. Therefore, the $ARMA(0,1)$ model is taken as the best model.
+
+==> An $ARMA(0,1)$ model is a moving average model of order 1, or MA(1) model. This model can be written as: $$X_t - \mu = Z_t - (\theta * Z_{t-1})$$
+
+Where $X_t$ is the stationary time series we are studying (the first differenced series of ages at death of English kings), $\mu$ is the mean of time series $X_t$, $Z_t$ is white noise with mean zero and constant variance, and $\theta$ is a parameter that can be estimated.
+
+The results of estimated model are as follow:
+
+
+```{r}
+library(forecast)
+
+fit <- Arima(kings_TS, order = c(0,1,1))
+summary(fit)
+
+```
+
+**Automatic selection:**
+
+All these steps can be done automatically with the `auto.arima()` function defined in the `forecast` package. The results also show that the `ARIMA(0,1,1)` model is the most adapted to model the series:
+
+
+```{r}
+library(forecast)
+
+## Automatic processing
+fit <- auto.arima(kings_TS)
+summary(fit)
+
+```
+
+`forecast()` function is used to make prediction for the next five following periodes (short-term forecasts):
+
+```{r}
+
+forecastedValues <- forecast(fit, h=5)
+print(forecastedValues)
+
+plot(forecastedValues)
+
+```
+
+**Model validation:**
+
+To check the validity of thr model hypothesis, we investigate whether the forecast errors of the ARIMA model are normally distributed with mean zero and constant variance, and whether the are correlations between successive forecast errors.
+
+For example, we can make a correlogram of the forecast errors for our $ARIMA(0,1,1)$ model for the ages at death of kings, and perform the Ljung-Box test for lags 1-20, by typing:
+
+```{r}
+Acf(forecastedValues$residuals, lag.max=20)
+Box.test(forecastedValues$residuals, lag=20, type="Ljung-Box")
+
+```
+
+None of the sample autocorrelations for lags 1-20 exceed the significance bounds, and the p-value for the Ljung-Box test is 0.9,  we can conclude that there is very little evidence for non-zero autocorrelations in the forecast errors at lags 1-20.
+
+To investigate whether the forecast errors are normally distributed with mean zero and constant variance, we can make a time plot and histogram (with overlaid normal curve) of the forecast errors:
+
+```{r, fig.width=6, fig.height=4}
+plot.ts(forecastedValues$residuals)            # make time plot of forecast errors
+
+# Histogramme avec la courbe de distribution
+
+plotForecastErrors <- function(forecasterrors)
+  {
+     # make a histogram of the forecast errors:
+     mybinsize <- IQR(forecasterrors)/4
+     mysd   <- sd(forecasterrors)
+     mymin  <- min(forecasterrors) - mysd*5
+     mymax  <- max(forecasterrors) + mysd*3
+     # generate normally distributed data with mean 0 and standard deviation mysd
+     mynorm <- rnorm(10000, mean=0, sd=mysd)
+     mymin2 <- min(mynorm)
+     mymax2 <- max(mynorm)
+     if (mymin2 < mymin) { mymin <- mymin2 }
+     if (mymax2 > mymax) { mymax <- mymax2 }
+     # make a red histogram of the forecast errors, with the normally distributed data overlaid:
+     mybins <- seq(mymin, mymax, mybinsize)
+     hist(forecasterrors, col="red", freq=FALSE, breaks=mybins)
+     # freq=FALSE ensures the area under the histogram = 1
+     # generate normally distributed data with mean 0 and standard deviation mysd
+     myhist <- hist(mynorm, plot=FALSE, breaks=mybins)
+     # plot the normal curve as a blue line on top of the histogram of forecast errors:
+     points(myhist$mids, myhist$density, type="l", col="blue", lwd=2)
+}
+
+plotForecastErrors(forecastedValues$residuals)
+```
+
+The time plot of the in-sample forecast errors shows that the variance of the forecast errors seems to be roughly constant over time (though perhaps there is slightly higher variance for the second half of the time series). The histogram of the time series shows that the forecast errors are roughly normally distributed and the mean seems to be close to zero. Therefore, it is plausible that the forecast errors are normally distributed with mean zero and constant variance.
+
+Since successive forecast errors do not seem to be correlated, and the forecast errors seem to be normally distributed with mean zero and constant variance, the $ARIMA(0,1,1)$ does seem to provide an adequate predictive model for the ages at death of English kings.
+
+**References:**
+
+- [Using R for Time Series Analysis](https://github.com/avrilcoghlan/LittleBookofRTimeSeries/blob/master/src/timeseries.rst)
+
+- [Manipulating Time Series Data in R with xts & zoo](https://rstudio-pubs-static.s3.amazonaws.com/288218_117e183e74964557a5da4fc5902fc671.html)
 
