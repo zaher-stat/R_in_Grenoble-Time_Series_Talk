@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Time Series</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Ahmed ZAHER" />
+    <meta name="date" content="2021-06-20" />
+    <script src="libs/clipboard/clipboard.min.js"></script>
+    <link href="libs/xaringanExtra-clipboard/xaringanExtra-clipboard.css" rel="stylesheet" />
+    <script src="libs/xaringanExtra-clipboard/xaringanExtra-clipboard.js"></script>
+    <script>window.xaringanExtraClipboard(null, {"button":"Copy Code","success":"Copied!","error":"Press Ctrl+C to Copy"})</script>
+    <link href="libs/shareon/shareon.min.css" rel="stylesheet" />
+    <script src="libs/shareon/shareon.min.js"></script>
+    <link href="libs/xaringanExtra-shareagain/shareagain.css" rel="stylesheet" />
+    <script src="libs/xaringanExtra-shareagain/shareagain.js"></script>
+    <link href="libs/panelset/panelset.css" rel="stylesheet" />
+    <script src="libs/panelset/panelset.js"></script>
+    <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+count: false
+
+class: inverse, center, title-slide, middle
+
+&lt;style&gt;
+.title-slide .remark-slide-number {
+  display: none;
+}
+&lt;/style&gt;
+
+# Time Series 
+
+## Analysis and Forecasting in R
+
+### [`Ahmed ZAHER`](https://lpnc.univ-grenoble-alpes.fr/Ahmed-ZAHER)
+
+### &amp;#x26f0;&amp;#xfe0f; R in Grenoble Session
+
+#### 26 June 2021
+
+
+---
+
+count: false
+
+class: inverse, lift, top
+
+# Outlines:
+
+- What is a Time Series?
+
+- Understanding your Time Series
+
+- How to make a time series stationary?
+
+- ARIMA Models
+
+- Autocorrelation and Partial-Autocorrelation
+
+- Forecasting Using an ARIMA Model
+
+---
+
+`Time Series in R`
+
+- Any metric that is measured over regular time intervals makes a Time Series. 
+e.g.: Weather data, Stock prices, Industry forecasts...
+
+--
+
+*Example: Economic Time Series data from ggplot2 package*
+
+
+
+```r
+# load economics Time Series data from ggplot2
+library(ggplot2)
+# Demo dataset
+head(economics)
+```
+
+```
+## # A tibble: 6 x 6
+##   date         pce    pop psavert uempmed unemploy
+##   &lt;date&gt;     &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;
+## 1 1967-07-01  507. 198712    12.6     4.5     2944
+## 2 1967-08-01  510. 198911    12.6     4.7     2945
+## 3 1967-09-01  516. 199113    11.9     4.6     2958
+## 4 1967-10-01  512. 199311    12.9     4.9     3143
+## 5 1967-11-01  517. 199498    12.8     4.7     3066
+## 6 1967-12-01  525. 199657    11.8     4.8     3018
+```
+
+--
+
+*Selecting psavert and uempmed datas*
+
+
+```r
+library(tidyr)
+library(dplyr)
+df &lt;- economics %&gt;%
+  select(date, psavert, uempmed) %&gt;%
+  gather(key = "variable", value = "value", -date)
+```
+
+---
+
+`Plotting Series`
+
+
+```r
+# Multiple line plot
+ggplot(df, aes(x = date, y = value)) + 
+  geom_line(aes(color = variable), size = 1) +
+  scale_color_manual(values = c("#00AFBB", "#E7B800")) +
+  theme_minimal()
+```
+
+&lt;img src="Presentation_files/figure-html/unnamed-chunk-3-1.png" style="display: block; margin: auto;" /&gt;
+
+==&gt; Other methods to plot time series are described in the [Tutorial](https://github.com/zaher-stat/R_in_Grenoble-Time_Series_Talk)
+
+---
+
+`Personal savings rate time series analysis`
+
+
+```r
+# get psavert data
+df &lt;- economics %&gt;%
+  select(date, psavert)
+
+# time period
+min(df$date)
+```
+
+```
+## [1] "1967-07-01"
+```
+
+```r
+max(df$date)
+```
+
+```
+## [1] "2015-04-01"
+```
+
+```r
+# convert it to a time serie
+psavert &lt;- stats::ts(df$psavert, frequency = 12, start = c(1967, 7), end = c(2015, 4))
+psavert
+```
+
+```
+##       Jan  Feb  Mar  Apr  May  Jun  Jul  Aug  Sep  Oct  Nov  Dec
+## 1967                               12.6 12.6 11.9 12.9 12.8 11.8
+## 1968 11.7 12.3 11.7 12.3 12.0 11.7 10.7 10.5 10.6 10.8 10.6 11.1
+## 1969 10.3  9.7 10.2  9.7 10.1 11.1 11.8 11.5 11.6 11.4 11.6 11.8
+## 1970 11.8 11.7 12.4 13.3 12.4 12.3 13.5 13.4 12.9 13.1 13.6 13.2
+## 1971 13.3 13.3 13.5 13.2 13.6 14.7 13.8 13.6 13.3 13.3 13.1 13.0
+## 1972 12.5 12.8 11.8 11.5 11.7 11.7 11.7 12.0 12.2 13.0 13.6 13.7
+## 1973 12.4 12.5 12.7 13.2 13.2 13.6 13.2 13.9 13.1 14.4 14.4 14.8
+## 1974 14.3 14.2 13.4 13.1 12.8 12.8 12.8 12.1 12.9 13.4 13.8 14.0
+## 1975 13.2 12.5 12.7 14.2 17.3 14.3 12.6 13.0 13.0 13.4 12.7 12.0
+## 1976 11.7 12.3 12.2 11.7 12.3 11.4 11.7 11.7 11.4 11.1 11.4 10.6
+## 1977 10.6  9.3 10.5 10.5 10.3 10.6 10.5 10.9 11.1 11.0 11.2 11.4
+## 1978 11.9 11.1 11.0 10.8 10.3 10.0 10.9 10.5 10.6 10.7 10.5 10.4
+## 1979 11.1 11.1 11.2 11.0 10.3  9.9 10.6  9.7  9.4  9.7  9.7 10.1
+## 1980  9.9 10.1 10.2 11.3 11.4 11.2 11.3 11.3 11.7 11.3 11.6 11.4
+## 1981 10.9 10.8 10.8 10.9 11.0 10.8 12.3 12.0 12.4 13.0 13.2 12.5
+## 1982 12.7 12.1 12.2 12.9 12.3 12.3 12.5 12.6 11.8 11.3 10.9 10.9
+## 1983 11.1 11.1 10.6 10.3  9.9  9.1  9.6  9.2  9.6  9.7 10.3 10.1
+## 1984 10.0 11.7 11.5 11.5 11.1 11.1 11.6 11.8 11.8 11.7 10.9 11.2
+## 1985 10.3  9.1  8.7  9.9 11.1  9.6  9.1  8.2  7.3  9.1  9.0  8.6
+## 1986  8.6  9.3  9.9  9.7  9.3  9.4  9.3  9.0  7.2  8.4  8.8  7.0
+## 1987  9.7  8.5  8.5  4.5  8.2  7.7  7.5  7.2  7.6  8.3  8.5  8.7
+## 1988  8.1  8.6  8.2  8.8  8.4  8.4  8.6  8.4  8.9  8.6  8.4  8.3
+## 1989  8.5  9.0  9.5  8.4  8.1  8.2  8.2  7.6  8.1  8.5  8.6  7.8
+## 1990  8.0  8.6  8.3  8.8  8.7  8.6  8.7  8.1  8.1  7.8  7.9  8.8
+## 1991  9.3  8.8  8.0  8.6  8.4  8.9  8.2  8.6  8.8  9.3  9.0  9.7
+## 1992  9.4  9.8  9.7  9.9  9.9 10.1  9.6  9.7  8.7  8.0  8.0 10.6
+## 1993  8.6  8.9  8.9  8.7  8.3  7.8  7.6  7.7  6.9  6.3  6.3  9.1
+## 1994  7.1  6.5  6.8  6.4  7.6  6.9  7.0  6.5  6.8  7.1  7.0  7.2
+## 1995  7.5  7.8  7.5  6.9  7.1  6.7  7.1  6.7  6.8  7.1  6.6  6.1
+## 1996  6.7  6.7  6.6  5.7  6.7  7.1  6.7  6.6  6.7  6.4  6.4  6.4
+## 1997  6.2  6.2  6.4  6.5  6.8  6.6  6.1  6.0  6.2  6.2  6.4  6.4
+## 1998  7.4  7.4  7.5  7.2  6.9  6.8  6.9  6.8  6.4  6.2  6.3  5.8
+## 1999  6.4  6.2  5.9  5.2  4.9  4.8  4.8  4.7  4.2  4.6  4.8  4.4
+## 2000  5.4  4.8  4.5  5.0  4.9  4.9  5.2  5.2  4.5  4.6  4.5  4.2
+## 2001  4.8  4.9  5.3  5.0  4.5  4.5  5.6  6.8  7.0  3.4  4.1  4.5
+## 2002  6.1  5.8  5.9  5.8  6.5  6.4  5.5  5.4  5.7  5.7  5.7  5.5
+## 2003  5.5  5.6  5.3  5.3  5.8  5.6  6.3  6.0  5.2  5.3  5.4  5.4
+## 2004  5.0  5.0  4.9  5.3  5.3  5.8  5.3  5.2  4.6  4.5  4.1  6.9
+## 2005  3.7  3.4  3.6  3.1  3.5  2.9  2.2  2.7  2.7  3.1  3.5  3.7
+## 2006  4.2  4.2  4.2  4.0  3.8  4.0  3.4  3.6  3.6  3.6  3.9  3.7
+## 2007  3.7  4.1  4.4  4.2  4.0  3.8  3.7  3.4  3.5  3.4  3.1  3.6
+## 2008  3.7  4.1  4.0  3.4  7.8  5.5  4.4  3.8  4.7  5.5  6.4  6.4
+## 2009  6.2  5.5  5.9  6.8  8.2  6.7  6.0  4.9  5.9  5.4  5.9  5.9
+## 2010  6.1  5.8  5.7  6.4  7.0  6.9  6.8  6.9  6.7  6.6  6.6  7.1
+## 2011  7.4  7.6  7.0  6.9  6.9  7.2  7.3  7.2  6.8  6.8  7.0  7.8
+## 2012  8.0  8.0  8.5  8.7  8.8  9.1  8.2  8.0  8.2  8.8  9.7 12.0
+## 2013  6.3  5.8  5.9  6.4  6.7  6.8  6.6  6.7  6.8  6.3  6.2  6.4
+## 2014  7.1  7.3  7.4  7.4  7.4  7.4  7.5  7.2  7.4  7.2  7.3  7.6
+## 2015  7.7  7.9  7.4  7.6
+```
+
+---
+
+`Plotting Time Series Object`
+
+
+```r
+stats::plot.ts(psavert, ylab="Personal savings rate", xlab="Year")
+```
+
+&lt;img src="Presentation_files/figure-html/unnamed-chunk-5-1.png" style="display: block; margin: auto;" /&gt;
+
+---
+
+`Components of a Time Series`
+
+- Each data point a Time Series ( `\(Y_t\)` ) can be expressed as either a sum or a product of three components : 
+
+Seasonality ( `\(S_t\)` ), Trend ( `\(T_t\)` ) and Error ( `\(\epsilon_t\)` ) (a.k.a White Noise)
+
+
+- Additive Time Series : `\(Y_t = S_t + T_t + \epsilon_t\)`
+
+
+- Multiplicative Time Series : `\(Y_t = S_t * T_t * \epsilon_t\)`
+
+
+A multiplicative time series can be converted to additive by taking a log of the time series.
+
+--
+
+&lt;center&gt;
+
+![Additive vs Multiplicative time series](Add_vs_Mult.jpeg)
+
+
+---
+
+`Extract components`
+
+
+```r
+decomposeTS &lt;- stats::decompose(psavert, type = "add")
+plot(decomposeTS)
+```
+
+&lt;img src="Presentation_files/figure-html/unnamed-chunk-6-1.png" style="display: block; margin: auto;" /&gt;
+
+---
+
+`Stationary Time Series`
+
+Being stationary requires that the mean and variance of a time series are constant for the whole series.
+That can be fixed by differencing the series or by applying another transformation. Differencing is the process of subtracting one observation from another and can be done on any number of observations.
+
+
+
+```r
+psavert_SA &lt;- psavert - decomposeTS$seasonal # Seasonally Adjusting
+psavert_SA_diff1 &lt;- diff(psavert_SA, differences = 1) # Differentiated series
+## ΔGDP_t = GDP_t - GDP_{t-1}
+plot(psavert_SA_diff1)
+```
+
+&lt;img src="Presentation_files/figure-html/unnamed-chunk-7-1.png" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+`The optimal number of diffs`
+
+
+```r
+library(forecast)
+ndiffs(x = psavert_SA)
+```
+
+```
+## [1] 1
+```
+
+
+```r
+plot(diff(psavert_SA, 1))
+```
+
+&lt;img src="Presentation_files/figure-html/unnamed-chunk-9-1.png" style="display: block; margin: auto;" /&gt;
+
+---
+
+`ARIMA Models`
+
+**Auto Regressive Integrated Moving Average** is a class of models that explains a given Time Series based on its own past values (lags and lagged forecast errors). So that equation can be used to forecast future values.
+
+--
+
+An ARIMA model is characterized by 3 terms: `\(ARIMA(p, d, q)\)`
+
+where :
+
+- `\(p\)` is the order of the `\(AR\)` term
+
+`$$Y_t = \beta_1 Y_{t-1} + \beta_2 Y_{t-2} + ... + \beta_p Y_{t-p} + \epsilon_t$$`
+
+- `\(q\)` is the order of the `\(MA\)` term
+
+`$$Y_t = \epsilon_t - \theta_1 \epsilon_{t-1} - ... - \theta_q \epsilon_{t-q}$$`
+
+- `\(d\)` is the number of differencing required to make the time series stationary
+
+`$$(1-L)^d Y_t$$`
+
+---
+
+`Selecting a condidate Model`
+
+To do this, we need to examine the correlogram and partial correlogram of the stationary time series.
+
+- __Correlogram__: represents the autocorrelation that measures the linear relationship between lagged values of a time series.
+
+- __Partial correlogram__: represents the partial autocorrelation function that measures the correlation between observations of a time series that are separated by k time units ( `\(Y_t\)` and `\(Y_{t–k}\)` ), after adjusting for the presence of all the other terms of shorter lag ( `\(Y_{t–1}\)`, `\(Y_{t–2}\)`, ..., `\(Y_{t–k-1}\)` ).
+
+==&gt; The partial autocorrelation at lag k is the correlation that results after removing the effect of any correlations due to the terms at shorter lags.
+
+To plot a correlogram and partial correlogram, we can use the _Acf()_ and _Pacf()_ functions in R.
+
+---
+
+`Selecting a condidate Model`
+
+**Correlogram for psavert Time Series**
+
+
+
+```r
+Acf(psavert_SA_diff1, lag.max=20)             # plot a correlogram
+```
+
+![](Presentation_files/figure-html/unnamed-chunk-10-1.png)&lt;!-- --&gt;
+
+```r
+Acf(psavert_SA_diff1, lag.max=20, plot=FALSE) # get the autocorrelation values
+```
+
+```
+## 
+## Autocorrelations of series 'psavert_SA_diff1', by lag
+## 
+##      0      1      2      3      4      5      6      7      8      9     10 
+##  1.000 -0.242 -0.104 -0.151  0.078  0.024  0.059 -0.038 -0.014 -0.021  0.014 
+##     11     12     13     14     15     16     17     18     19     20 
+## -0.031  0.021 -0.050 -0.011  0.045  0.006 -0.044  0.008  0.008  0.030
+```
+
+
+---
+
+`Selecting a condidate Model`
+
+**Partial correlogram for psavert Time Series**
+
+
+```r
+Pacf(psavert_SA_diff1, lag.max=20)             # plot a partial correlogram
+```
+
+![](Presentation_files/figure-html/unnamed-chunk-11-1.png)&lt;!-- --&gt;
+
+```r
+Pacf(psavert_SA_diff1, lag.max=20, plot=FALSE) # get the partial autocorrelation values
+```
+
+```
+## 
+## Partial autocorrelations of series 'psavert_SA_diff1', by lag
+## 
+##      1      2      3      4      5      6      7      8      9     10     11 
+## -0.242 -0.172 -0.243 -0.064 -0.037  0.035  0.005  0.001 -0.012 -0.009 -0.049 
+##     12     13     14     15     16     17     18     19     20 
+## -0.015 -0.068 -0.065  0.010 -0.005 -0.040 -0.003  0.000  0.022
+```
+
+
+---
+
+`Selecting a condidate Model`
+
+
+Since the correlogram is zero after lag 1, and the partial correlogram tails off to zero after lag 3, this means that the following ARMA (autoregressive moving average) models are possible for the time series of first differences:
+
+- an ARMA(3,0) model, that is, an autoregressive model of order p=3, since the partial autocorrelogram is zero after lag 3, and the autocorrelogram tails off to zero (although perhaps too abruptly for this model to be appropriate)
+
+- an ARMA(0,1) model, that is, a moving average model of order q=1, since the autocorrelogram is zero after lag 1 and the partial autocorrelogram tails off to zero
+
+- an ARMA(p,q) model, that is, a mixed model with p and q greater than 0, since the autocorrelogram and partial correlogram tail off to zero (although the correlogram probably tails off to zero too abruptly for this model to be appropriate)
+
+---
+
+`Automatic selection`
+
+
+```r
+## Automatic processing
+fit &lt;- auto.arima(psavert_SA)
+summary(fit)
+```
+
+```
+## Series: psavert_SA 
+## ARIMA(0,1,4) 
+## 
+## Coefficients:
+##           ma1      ma2      ma3     ma4
+##       -0.3424  -0.1458  -0.1105  0.1136
+## s.e.   0.0417   0.0442   0.0434  0.0445
+## 
+## sigma^2 estimated as 0.4661:  log likelihood=-592.48
+## AIC=1194.96   AICc=1195.07   BIC=1216.72
+## 
+## Training set error measures:
+##                       ME      RMSE       MAE        MPE     MAPE      MASE
+## Training set -0.01681104 0.6797199 0.4650729 -0.8657055 6.201835 0.4277057
+##                     ACF1
+## Training set 0.001557482
+```
+
+---
+
+`Forecasting`
+
+_forecast()_ function is used to make prediction for the next five following periodes (short-term forecasts):
+
+
+```r
+forecastedValues &lt;- forecast(fit, h=15)
+plot(forecastedValues)
+```
+
+![](Presentation_files/figure-html/unnamed-chunk-13-1.png)&lt;!-- --&gt;
+
+```r
+forecastedValues$mean
+```
+
+```
+##           Jan      Feb      Mar      Apr      May      Jun      Jul      Aug
+## 2015                                     7.613248 7.664595 7.608462 7.627910
+## 2016 7.627910 7.627910 7.627910 7.627910 7.627910 7.627910 7.627910         
+##           Sep      Oct      Nov      Dec
+## 2015 7.627910 7.627910 7.627910 7.627910
+## 2016
+```
+
+
+---
+
+`Model validation`
+
+
+```r
+Acf(forecastedValues$residuals, lag.max=20)
+```
+
+![](Presentation_files/figure-html/unnamed-chunk-14-1.png)&lt;!-- --&gt;
+
+```r
+Box.test(forecastedValues$residuals, lag=20, type="Ljung-Box")
+```
+
+```
+## 
+## 	Box-Ljung test
+## 
+## data:  forecastedValues$residuals
+## X-squared = 10.633, df = 20, p-value = 0.9552
+```
+
+---
+
+count: false
+
+class: inverse, center
+
+&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;&lt;br&gt;
+
+.center[
+# Thank you!
+
+]
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
