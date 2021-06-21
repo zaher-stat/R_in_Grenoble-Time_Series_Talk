@@ -4,7 +4,7 @@
     <title>Time Series</title>
     <meta charset="utf-8" />
     <meta name="author" content="Ahmed ZAHER" />
-    <meta name="date" content="2021-06-20" />
+    <meta name="date" content="2021-06-21" />
     <script src="libs/clipboard/clipboard.min.js"></script>
     <link href="libs/xaringanExtra-clipboard/xaringanExtra-clipboard.css" rel="stylesheet" />
     <script src="libs/xaringanExtra-clipboard/xaringanExtra-clipboard.js"></script>
@@ -236,9 +236,9 @@ stats::plot.ts(psavert, ylab="Personal savings rate", xlab="Year")
 
 `Components of a Time Series`
 
-- Each data point a Time Series ( `\(Y_t\)` ) can be expressed as either a sum or a product of three components : 
+Each data point a Time Series ( `\(Y_t\)` ) can be expressed as either a sum or a product of three components : 
 
-Seasonality ( `\(S_t\)` ), Trend ( `\(T_t\)` ) and Error ( `\(\epsilon_t\)` ) (a.k.a White Noise)
+==&gt; Seasonality ( `\(S_t\)` ), Trend ( `\(T_t\)` ) and Error ( `\(\epsilon_t\)` ) (a.k.a White Noise)
 
 
 - Additive Time Series : `\(Y_t = S_t + T_t + \epsilon_t\)`
@@ -273,8 +273,11 @@ plot(decomposeTS)
 `Stationary Time Series`
 
 Being stationary requires that the mean and variance of a time series are constant for the whole series.
-That can be fixed by differencing the series or by applying another transformation. Differencing is the process of subtracting one observation from another and can be done on any number of observations.
+That can be fixed by differencing the series or by applying another transformation.
 
+- Differencing is the process of subtracting one observation from another and can be done on any number of observations.
+
+--
 
 
 ```r
@@ -308,6 +311,8 @@ plot(diff(psavert_SA, 1))
 
 &lt;img src="Presentation_files/figure-html/unnamed-chunk-9-1.png" style="display: block; margin: auto;" /&gt;
 
+==&gt; we can also chek for stationarity using statistical tests (e.g. _ADF test_)
+
 ---
 
 `ARIMA Models`
@@ -326,11 +331,16 @@ where :
 
 - `\(q\)` is the order of the `\(MA\)` term
 
-`$$Y_t = \epsilon_t - \theta_1 \epsilon_{t-1} - ... - \theta_q \epsilon_{t-q}$$`
+`$$Y_t = \epsilon_t + \theta_1 \epsilon_{t-1} + ... + \theta_q \epsilon_{t-q}$$`
 
 - `\(d\)` is the number of differencing required to make the time series stationary
 
 `$$(1-L)^d Y_t$$`
+
+- The model equation can be writtes as follow:
+
+`$$(1 - \beta_1 L - \beta_2 L^2 - ... - \beta_p L^p) (1-L)^d Y_t = (1 + \theta_1 L + \theta_2 L^2 + ... + \theta_q L^q) \epsilon_t$$` 
+$$AR(p)\qquad d\; differences\qquad MA(q) $$
 
 ---
 
@@ -358,7 +368,7 @@ To plot a correlogram and partial correlogram, we can use the _Acf()_ and _Pacf(
 Acf(psavert_SA_diff1, lag.max=20)             # plot a correlogram
 ```
 
-![](Presentation_files/figure-html/unnamed-chunk-10-1.png)&lt;!-- --&gt;
+&lt;img src="Presentation_files/figure-html/unnamed-chunk-10-1.png" style="display: block; margin: auto;" /&gt;
 
 ```r
 Acf(psavert_SA_diff1, lag.max=20, plot=FALSE) # get the autocorrelation values
@@ -386,7 +396,7 @@ Acf(psavert_SA_diff1, lag.max=20, plot=FALSE) # get the autocorrelation values
 Pacf(psavert_SA_diff1, lag.max=20)             # plot a partial correlogram
 ```
 
-![](Presentation_files/figure-html/unnamed-chunk-11-1.png)&lt;!-- --&gt;
+&lt;img src="Presentation_files/figure-html/unnamed-chunk-11-1.png" style="display: block; margin: auto;" /&gt;
 
 ```r
 Pacf(psavert_SA_diff1, lag.max=20, plot=FALSE) # get the partial autocorrelation values
@@ -408,13 +418,23 @@ Pacf(psavert_SA_diff1, lag.max=20, plot=FALSE) # get the partial autocorrelation
 `Selecting a condidate Model`
 
 
-Since the correlogram is zero after lag 1, and the partial correlogram tails off to zero after lag 3, this means that the following ARMA (autoregressive moving average) models are possible for the time series of first differences:
+Since the correlogram is zero after lag 4, and the partial correlogram tails off to zero after lag 3, this means that the following __ARMA__ (autoregressive moving average) models are possible for the time series of first differences:
 
-- an ARMA(3,0) model, that is, an autoregressive model of order p=3, since the partial autocorrelogram is zero after lag 3, and the autocorrelogram tails off to zero (although perhaps too abruptly for this model to be appropriate)
+--
 
-- an ARMA(0,1) model, that is, a moving average model of order q=1, since the autocorrelogram is zero after lag 1 and the partial autocorrelogram tails off to zero
+- an __ARMA(3,0)__ model, that is, an autoregressive model of order p=3, since the partial autocorrelogram is zero after lag 3, and the autocorrelogram tails off to zero 
 
-- an ARMA(p,q) model, that is, a mixed model with p and q greater than 0, since the autocorrelogram and partial correlogram tail off to zero (although the correlogram probably tails off to zero too abruptly for this model to be appropriate)
+--
+
+- an __ARMA(0,4)__ model, that is, a moving average model of order q=4, since the autocorrelogram is zero after lag 4 and the partial autocorrelogram tails off to zero
+
+--
+
+- an __ARMA(p,q)__ model, that is, a mixed model with p and q greater than 0, since the autocorrelogram and partial correlogram tail off to zero ( `\(0 &lt; p,q &lt;= 4\)` )
+
+--
+
+==&gt; To choose the best model, we generally use the principle of parsimony, while respecting the assumptions of the ARIMA models (uncorrelated and normally distributed errors).
 
 ---
 
@@ -445,6 +465,12 @@ summary(fit)
 ##                     ACF1
 ## Training set 0.001557482
 ```
+
+--
+
+The __ARIMA(0, 1, 4)__ model is selected and estimated using _auto.arima()_ function (with  Maximum Likelihood Estimation Method). Its mathematical formula is the following:
+
+`$$\Delta_1 psavert\_SA = \epsilon_t - 0.342 \epsilon_{t-1} - 0.146 \epsilon_{t-2} - 0.110 \epsilon_{t-3} + 0.114 \epsilon_{t-4}$$`
 
 ---
 
