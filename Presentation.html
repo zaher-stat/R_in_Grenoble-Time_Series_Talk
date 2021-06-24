@@ -4,7 +4,7 @@
     <title>Time Series</title>
     <meta charset="utf-8" />
     <meta name="author" content="Ahmed ZAHER" />
-    <meta name="date" content="2021-06-21" />
+    <meta name="date" content="2021-06-24" />
     <script src="libs/clipboard/clipboard.min.js"></script>
     <link href="libs/xaringanExtra-clipboard/xaringanExtra-clipboard.css" rel="stylesheet" />
     <script src="libs/xaringanExtra-clipboard/xaringanExtra-clipboard.js"></script>
@@ -51,7 +51,7 @@ class: inverse, center, title-slide, middle
 
 ### &amp;#x26f0;&amp;#xfe0f; R in Grenoble Session
 
-#### 26 June 2021
+#### 24 June 2021
 
 
 ---
@@ -430,7 +430,7 @@ Since the correlogram is zero after lag 4, and the partial correlogram tails off
 
 --
 
-- an __ARMA(p,q)__ model, that is, a mixed model with p and q greater than 0, since the autocorrelogram and partial correlogram tail off to zero ( `\(0 &lt; p,q &lt;= 4\)` )
+- an __ARMA(p,q)__ model, that is, a mixed model with p and q greater than 0, since the autocorrelogram and partial correlogram tail off to zero ( `\(0 &lt; p,q \leq 4\)` )
 
 --
 
@@ -502,26 +502,23 @@ forecastedValues$mean
 
 ---
 
+
+
+
 `Model validation`
+
+==&gt; Check whether the forecast errors (residuals) are uncorrelated and normally distributed with a mean zero and a constant variance:
 
 
 ```r
 Acf(forecastedValues$residuals, lag.max=20)
+plotForecastErrors(forecastedValues$residuals)
 ```
 
-![](Presentation_files/figure-html/unnamed-chunk-14-1.png)&lt;!-- --&gt;
+&lt;img src="Presentation_files/figure-html/unnamed-chunk-15-1.png" width="50%" /&gt;&lt;img src="Presentation_files/figure-html/unnamed-chunk-15-2.png" width="50%" /&gt;
 
-```r
-Box.test(forecastedValues$residuals, lag=20, type="Ljung-Box")
-```
 
-```
-## 
-## 	Box-Ljung test
-## 
-## data:  forecastedValues$residuals
-## X-squared = 10.633, df = 20, p-value = 0.9552
-```
+
 
 ---
 
@@ -533,6 +530,11 @@ class: inverse, center
 
 .center[
 # Thank you!
+
+## &amp;#x26f0;&amp;#xfe0f; R in Grenoble Session
+
+### Time Series
+
 
 ]
     </textarea>

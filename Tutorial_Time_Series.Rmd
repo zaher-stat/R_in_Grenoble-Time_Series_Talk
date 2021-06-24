@@ -394,7 +394,7 @@ plot(forecastedValues)
 
 **Model validation:**
 
-To check the validity of thr model hypothesis, we investigate whether the forecast errors of the ARIMA model are normally distributed with mean zero and constant variance, and whether the are correlations between successive forecast errors.
+To check the validity of thr model hypothesis, we investigate whether the forecast errors of the ARIMA model are normally distributed with mean zero and constant variance, and whether there are correlations between successive forecast errors.
 
 For example, we can make a correlogram of the forecast errors for our $ARIMA(0,1,1)$ model for the ages at death of kings, and perform the Ljung-Box test for lags 1-20, by typing:
 
@@ -448,4 +448,6 @@ Since successive forecast errors do not seem to be correlated, and the forecast 
 - [Using R for Time Series Analysis](https://github.com/avrilcoghlan/LittleBookofRTimeSeries/blob/master/src/timeseries.rst)
 
 - [Manipulating Time Series Data in R with xts & zoo](https://rstudio-pubs-static.s3.amazonaws.com/288218_117e183e74964557a5da4fc5902fc671.html)
+
+- [ARIMA Models](https://sites.google.com/site/econometricsacademy/econometrics-models/time-series-arima-models)
 
